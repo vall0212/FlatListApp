@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import axios from "axios";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,6 +12,15 @@ type Todo = {
 }
 
 const API_URL = 'https://jsonplaceholder.typicode.com/todos';
+
+// Create a memoized component for each item in the list in order to avoid unnecessary re-renders and improve performance.
+const TodoItem = memo(({ item }: { item: Todo }) => (
+  <View style={styles.commentItem}>
+    <Text style={styles.id}>ID: {item.id}</Text>
+    <Text style={styles.title}>Title: {item.title}</Text>
+    <Text style={styles.status}>Status: {item.completed ? 'Yes' : 'No'}</Text>
+  </View>
+));
 
 export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -36,11 +45,7 @@ export default function App() {
 
   // Item renderer for FlatList.
   const renderItem: ListRenderItem<Todo> = useCallback(({ item }) => (
-    <View style={styles.commentItem}>
-      <Text style={styles.id}>ID: {item.id}</Text>
-      <Text style={styles.title}>Title: {item.title}</Text>
-      <Text style={styles.status}>Status: {item.completed ? 'Yes' : 'No'}</Text>
-    </View>
+    <TodoItem item={item} />
   ), []);
 
   // Key extractor for FlatList.
