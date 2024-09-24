@@ -1,51 +1,66 @@
-import { useState, useEffect } from "react";
-import { FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import axios from "axios";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type {ListRenderItem} from "react-native";
 
-type Comment = {
-  postId: number;
+type Todo = {
   id: number;
-  name: string;
-  email: string;
-  body: string;
+  userId: number;
+  title: string;
+  completed: boolean;
 }
 
+const API_URL = 'https://jsonplaceholder.typicode.com/todos';
+
 export default function App() {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    axios
-      .get<Comment[]>("https://jsonplaceholder.typicode.com/comments")
-      .then((response) => {
-        setComments(response.data);
-      })
-      .catch((e) => {
-        console.error("Error fetching data: ", e);
-      });
+    const fetchTodos = async () => {
+      try {
+        const response = await axios.get<Todo[]>(API_URL);
+        setTodos(response.data);
+      } catch (error) {
+        console.error('Error fetching data: ', error);
+        setError('Something went wrong when trying to fetch the data from the API!');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTodos();
   });
 
-  // Item renderer for FlatList
-  const renderItem: ListRenderItem<Comment> = ({ item }) => (
+  // Item renderer for FlatList.
+  const renderItem: ListRenderItem<Todo> = useCallback(({ item }) => (
     <View style={styles.commentItem}>
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.email}>{item.email}</Text>
-      <Text style={styles.body}>{item.body}</Text>
+      <Text style={styles.id}>ID: {item.id}</Text>
+      <Text style={styles.title}>Title: {item.title}</Text>
+      <Text style={styles.status}>Status: {item.completed ? 'Yes' : 'No'}</Text>
     </View>
-  );
+  ), []);
 
-  // Key extractor for FlatList
-  const keyExtractor = (item: Comment) => item.id.toString();
+  // Key extractor for FlatList.
+  const keyExtractor = useCallback((item: Todo) => item.id.toString(), []);
 
   return (
     <SafeAreaProvider style={styles.container}>
       <SafeAreaView>
-        <FlatList
-          data={comments}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-        />
+        {loading ? (
+          <ActivityIndicator size="large" color="grey" />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <FlatList
+            data={todos}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={styles.flatListContentContainer}
+          />
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -54,21 +69,29 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
+    padding: 16,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
+  flatListContentContainer: {
+    paddingVertical: 16,
+  },
   commentItem: {
     marginBottom: 16,
   },
-  name: {
+  id: {
     fontWeight: "bold",
   },
-  email: {
+  title: {
     color: "gray",
   },
-  body: {
+  status: {
     marginTop: 4,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
